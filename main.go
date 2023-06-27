@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/xid"
 )
 
 type todo struct {
@@ -17,7 +18,7 @@ var todos = []todo{
 	{ID: "1", Title: "Implement GET", Content: "Get all the elements of the list", Done: false},
 	{ID: "2", Title: "Implement POST", Content: "Add an element to the list", Done: false},
 	{ID: "3", Title: "Implement PUT", Content: "Update an element from the list", Done: false},
-	{ID: "5", Title: "Implement PATCH", Content: "Mark an element from the as done", Done: false},
+	{ID: "5", Title: "Implement PATCH", Content: "Mark an element from the list as done", Done: false},
 	{ID: "5", Title: "Implement Delete", Content: "Delete an element of the list", Done: false},
 }
 
@@ -26,11 +27,11 @@ func remove(t []todo, i int) []todo {
 	return t[:len(t)-1]
 }
 
-func getTodos(c *gin.Context) {
+func GetTodos(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, todos)
 }
 
-func getTodoByID(c *gin.Context) {
+func GetTodoByID(c *gin.Context) {
 	id := c.Param("id")
 
 	for _, t := range todos {
@@ -39,10 +40,10 @@ func getTodoByID(c *gin.Context) {
 			return
 		}
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": " not found"})
+	c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found"})
 }
 
-func markAsDone(c *gin.Context) {
+func MarkAsDone(c *gin.Context) {
 	id := c.Param("id")
 
 	for i := 0; i < len(todos); i++ {
@@ -56,54 +57,70 @@ func markAsDone(c *gin.Context) {
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "todo not found"})
 }
 
-func postTodo(c *gin.Context) {
+func PostTodo(c *gin.Context) {
 	var newTodo todo
-
-	if err := c.BindJSON(&newTodo); err != nil {
+	if err := c.ShouldBindJSON(&newTodo); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
-
+	newTodo.ID = xid.New().String()
 	todos = append(todos, newTodo)
-	c.IndentedJSON(http.StatusCreated, newTodo)
+	c.JSON(http.StatusCreated, newTodo)
 }
 
-func putTodo(c *gin.Context) {
+func PutTodo(c *gin.Context) {
+	id := c.Param("id")
 	var newTodo todo
 
-	if err := c.BindJSON(&newTodo); err != nil {
+	if err := c.ShouldBindJSON(&newTodo); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	for _, t := range todos {
-		if t.ID == newTodo.ID {
-			t = newTodo
-			c.IndentedJSON(http.StatusOK, t)
-			return
+	index := -1
+
+	for i := 0; i < len(todos); i++ {
+		if todos[i].ID == id {
+			index = 1
 		}
 	}
 
+	if index == -1 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "TODO not found",
+		})
+		todos[index] = newTodo
+		c.JSON(http.StatusOK, newTodo)
+	}
+
 	c.IndentedJSON(http.StatusCreated, newTodo)
 }
 
-func deleteTodo(c *gin.Context) {
+func DeleteTodo(c *gin.Context) {
 	id := c.Param("id")
 
 	for i := 0; i < len(todos); i++ {
 		if todos[i].ID == id {
 			todos = remove(todos, i)
-			c.IndentedJSON(http.StatusOK, todos)
+			c.JSON(http.StatusOK, gin.H{
+				"message": "TODO deleted",
+			})
 			return
 		}
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "todo not found"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "TODO not found"})
 }
 
 func main() {
 	router := gin.Default()
-	router.GET("/todos", getTodos)
-	router.GET("/todos/:id", getTodoByID)
-	router.POST("/todos", postTodo)
-	router.PATCH("/todos/:id", markAsDone)
-	router.DELETE("/todos/:id", deleteTodo)
+	router.GET("/todos", GetTodos)
+	router.GET("/todos/:id", GetTodoByID)
+	router.POST("/todos", PostTodo)
+	router.PATCH("/todos/:id", MarkAsDone)
+	router.DELETE("/todos/:id", DeleteTodo)
 	router.Run("localhost:8080")
 }
