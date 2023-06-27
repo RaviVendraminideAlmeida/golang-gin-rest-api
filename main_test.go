@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"io/ioutil"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/rs/xid"
+	"encoding/json"
 )
 
 func SetUpRouter() *gin.Engine {
@@ -56,8 +59,26 @@ func Test_putTodo(t *testing.T){
 	return
 }
 
-func Test_postTodo(t *testing.T){
-	return
+func Test_PostTodo(t *testing.T){
+	r := SetUpRouter()
+	r.POST("/todos", PostTodo)
+
+	todoId := xid.New().String()
+
+	todo := todo {
+		ID : todoId,
+		Title : "Demo Title",
+		Content : "Demo Content",
+		Done : false,
+	}	
+
+	jsonTodo, _ := json.Marshal(todo)
+	req, _ := http.NewRequest("POST", "/todos", bytes.NewBuffer(jsonTodo))
+
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
 func Test_deleteTodo(t *testing.T){
