@@ -18,7 +18,7 @@ var todos = []todo{
 	{ID: "1", Title: "Implement GET", Content: "Get all the elements of the list", Done: false},
 	{ID: "2", Title: "Implement POST", Content: "Add an element to the list", Done: false},
 	{ID: "3", Title: "Implement PUT", Content: "Update an element from the list", Done: false},
-	{ID: "5", Title: "Implement PATCH", Content: "Mark an element from the list as done", Done: false},
+	{ID: "4", Title: "Implement PATCH", Content: "Mark an element from the list as done", Done: false},
 	{ID: "5", Title: "Implement Delete", Content: "Delete an element of the list", Done: false},
 }
 
@@ -93,11 +93,15 @@ func PutTodo(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "TODO not found",
 		})
-		todos[index] = newTodo
-		c.JSON(http.StatusOK, newTodo)
+		return
 	}
 
-	c.IndentedJSON(http.StatusCreated, newTodo)
+	index++
+
+	todos[index].Content = newTodo.Content
+	todos[index].Done = newTodo.Done
+	todos[index].Title = newTodo.Title
+	c.JSON(http.StatusOK, todos[index])
 }
 
 func DeleteTodo(c *gin.Context) {
@@ -119,6 +123,7 @@ func main() {
 	router := gin.Default()
 	router.GET("/todos", GetTodos)
 	router.GET("/todos/:id", GetTodoByID)
+	router.PUT("/todos/:id", PutTodo)
 	router.POST("/todos", PostTodo)
 	router.PATCH("/todos/:id", MarkAsDone)
 	router.DELETE("/todos/:id", DeleteTodo)
