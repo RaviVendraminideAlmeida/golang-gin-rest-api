@@ -27,6 +27,12 @@ func remove(t []todo, i int) []todo {
 	return t[:len(t)-1]
 }
 
+func HomePageHandler(c *gin.Context){
+	c.JSON(http.StatusOK, gin.H {
+		"message" : "Welcome to my TODO list App! :)",
+	})
+}
+
 func GetTodos(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, todos)
 }
@@ -121,6 +127,7 @@ func DeleteTodo(c *gin.Context) {
 
 func main() {
 	router := gin.Default()
+	router.GET("/", HomePageHandler)
 	router.GET("/todos", GetTodos)
 	router.GET("/todos/:id", GetTodoByID)
 	router.PUT("/todos/:id", PutTodo)
